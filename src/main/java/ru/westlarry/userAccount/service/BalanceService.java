@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +13,6 @@ import ru.westlarry.userAccount.exception.UserNotFoundException;
 import ru.westlarry.userAccount.repository.AccountRepository;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -25,25 +23,11 @@ public class BalanceService {
     @Autowired
     private AccountRepository accountRepository;
 
-    @Autowired
-    private ExternalService externalService;
-
     @Value("${app.limitBalancePercent}")
     private int limitBalancePercent;
 
     @Value("${app.updateBalancePercent}")
     private int updateBalancePercent;
-
-    @Scheduled(fixedRate = 30 * 1000, initialDelay = 30 * 1000)
-    public void runUpdateBalanceJob() {
-        List<Long> accounts = accountRepository.findAllIds();
-        accounts.parallelStream().forEach(e -> {
-            BigDecimal initBalance = externalService.getInitBalanceForAccount(e);
-            if (initBalance != null) {
-                updateBalance(e, initBalance);
-            }
-        });
-    }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     //Начинаем новую транзакцию, все вложенные транзакции будут присоединяться к ней

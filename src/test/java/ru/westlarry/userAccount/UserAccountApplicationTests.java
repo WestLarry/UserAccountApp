@@ -8,6 +8,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -19,9 +20,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.testcontainers.containers.PostgreSQLContainer;
 import ru.westlarry.userAccount.repository.AccountRepository;
-import ru.westlarry.userAccount.repository.UserRepository;
-import ru.westlarry.userAccount.service.BalanceService;
+import ru.westlarry.userAccount.service.ScheduleService;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.logging.Level;
@@ -35,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = UserAccountApplication.class, initializers = {UserAccountApplicationTests.Initializer.class})
 @AutoConfigureMockMvc
 @RunWith(SpringRunner.class)
+@MockBean(ScheduleService.class)
 public class UserAccountApplicationTests {
 
     @Autowired
@@ -130,7 +132,6 @@ public class UserAccountApplicationTests {
                 .andExpect(status().isNoContent());
 
 
-
         String findByEmailJson = "{\"dateOfBirth\": null, \"name\": null, \"email\": \"testUser2@email.com\", \"phone\": null, \"page\": 0, \"size\" : 1}";
         String findByPhoneJson = "{\"dateOfBirth\": null, \"name\": null, \"email\": null, \"phone\": \"79008200002\", \"page\": 0, \"size\" : 1}";
         String findByNameJson = "{\"dateOfBirth\": null, \"name\": \"Петр\", \"email\": null, \"phone\": null, \"page\": 0, \"size\" : 1}";
@@ -163,6 +164,67 @@ public class UserAccountApplicationTests {
                         .content(findByAllParamsJson)
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.users[0].name").value("Петр Петров"));
+
+    }
+
+    @Test
+    public void transferOperation() throws Exception {
+        String transferJson = "{\"toUserId\": 2, \"amount\": 2.0}";
+        String transferBigAmountJson = "{\"toUserId\": 2, \"amount\": 2000.0}";
+        String transferWrongUserJson = "{\"toUserId\": 3, \"amount\": 2.0}";
+        String transferWrongAmountJson = "{\"toUserId\": 2, \"amount\": -2.0}";
+        // запрос от неавторизованного пользователя
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/balance/transfer")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(transferJson))
+                .andExpect(status().isUnauthorized());
+
+        //получение токена
+        MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/signin")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\": \"testUser1@email.com\", \"password\": \"secret\"}"))
+                .andExpect(status().isOk()).andReturn();
+        String token = JsonPath.read(mvcResult.getResponse().getContentAsString(StandardCharsets.UTF_8), "$.accessToken");
+
+        BigDecimal startBalanceUser1 = accountRepository.findById(1L).get().getBalance();
+        BigDecimal startBalanceUser2 = accountRepository.findById(2L).get().getBalance();
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/balance/transfer")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(transferJson)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        BigDecimal endBalanceUser1 = accountRepository.findById(1L).get().getBalance();
+        BigDecimal endBalanceUser2 = accountRepository.findById(2L).get().getBalance();
+        assertEquals(2.0, startBalanceUser1.doubleValue() - endBalanceUser1.doubleValue(), 0.001);
+        assertEquals(2.0, endBalanceUser2.doubleValue() - startBalanceUser2.doubleValue(), 0.001);
+
+        // Попытка списать больше, чем есть на счете
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/balance/transfer")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(transferBigAmountJson)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+
+        // Попытка перевести на несуществующий счет
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/balance/transfer")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(transferWrongUserJson)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound());
+
+        // Попытка перевести отрицательную сумму
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/balance/transfer")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(transferWrongAmountJson)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
 
     }
 
