@@ -22,7 +22,7 @@ public class ScheduleService {
     @Scheduled(fixedRate = 30 * 1000, initialDelay = 30 * 1000)
     public void runUpdateBalanceJob() {
         List<Long> accounts = accountRepository.findAllIds();
-        accounts.parallelStream().forEach(e -> {
+        accounts.forEach(e -> {
             BigDecimal initBalance = externalService.getInitBalanceForAccount(e);
             if (initBalance != null) {
                 balanceService.updateBalance(e, initBalance);

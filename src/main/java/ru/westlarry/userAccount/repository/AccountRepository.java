@@ -18,8 +18,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     @Query("select id from Account")
     List<Long> findAllIds();
 
-    @Lock(LockModeType.PESSIMISTIC_READ)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Transactional(readOnly = false, propagation = Propagation.REQUIRED)
     @QueryHints({@QueryHint(name = "javax.persistence.lock.timeout", value = "5000")})
-    Optional<Account> findById(Long id); //на получение аккаунта происходит пессимистическая блокировка
+    Optional<Account> findById(Long id); //получаем пессимистическую блокировку на запись
 }
