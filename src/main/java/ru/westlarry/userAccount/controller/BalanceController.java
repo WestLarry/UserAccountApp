@@ -1,7 +1,7 @@
 package ru.westlarry.userAccount.controller;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,29 +19,18 @@ import javax.validation.Valid;
 @RestController
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RequestMapping("/api/balance")
+@Api(tags = {"Operations"})
 public class BalanceController {
-
-    private static final Logger logger = LoggerFactory.getLogger(BalanceController.class);
 
     @Autowired
     private BalanceService balanceService;
 
     @PostMapping("/transfer")
-    public ResponseEntity<?> transfer(@Valid @RequestBody TransferRequest transferRequest) {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            Long userId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
-            balanceService.transfer(userId, transferRequest.getToUserId(), transferRequest.getAmount());
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (UserNotFoundException e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (InsufficientFundsException e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.FORBIDDEN);
-        } catch (Exception e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    @ApiOperation(value = "Операция трансфера денег (со счета текущего пользователя на счет другого пользователя)")
+    public ResponseEntity<?> transfer(@Valid @RequestBody TransferRequest transferRequest) throws UserNotFoundException, InsufficientFundsException {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
+        balanceService.transfer(userId, transferRequest.getToUserId(), transferRequest.getAmount());
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }

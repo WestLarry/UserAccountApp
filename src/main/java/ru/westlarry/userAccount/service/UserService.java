@@ -37,7 +37,7 @@ public class UserService {
         return userRepository.searchByFilter(localDate, name == null ? "" : name, email, phone, PageRequest.of(page, size, Sort.Direction.ASC, "name"));
     }
 
-    public void addNewEmail(Long userId, String email) throws NonUniqueException, UserNotFoundException {
+    public Long addNewEmail(Long userId, String email) throws NonUniqueException, UserNotFoundException {
         Optional<User> user = userRepository.findById(userId);
         if (user.isPresent()) {
             boolean exists = emailDataRepository.existsByEmail(email);
@@ -48,51 +48,65 @@ public class UserService {
             emailData.setEmail(email);
             emailData.setUser(user.get());
 
-            emailDataRepository.save(emailData);
+            EmailData saved = emailDataRepository.save(emailData);
+            return saved.getId();
         } else {
             throw new UserNotFoundException("Пользователь не найден");
         }
     }
 
-    public void changeEmail(Long userId, String oldEmail, String newEmail) throws NonUniqueException, UserNotFoundException, CommonApiException {
+    public Long changeEmail(Long userId, Long emailDataId, String newEmail) throws NonUniqueException, UserNotFoundException, CommonApiException {
         Optional<User> user = userRepository.findById(userId);
         if (user.isPresent()) {
-           List<EmailData> emailData = emailDataRepository.findByEmailAndUserId(oldEmail, userId);
-           if (emailData.isEmpty()) {
-               throw new CommonApiException("Email не найден");
-           }
+            Optional<EmailData> emailDataOpt = emailDataRepository.findById(emailDataId);
+            if (emailDataOpt.isEmpty()) {
+                throw new CommonApiException("Email не найден");
+            }
+            EmailData currentEmailData = emailDataOpt.get();
+            String currentEmail = currentEmailData.getEmail();
+            Long ownerId = currentEmailData.getUser().getId();
+            if (!user.get().getId().equals(ownerId)) {
+                throw new CommonApiException("Запрещается изменять чужие данные");
+            }
 
-           if (oldEmail.equalsIgnoreCase(newEmail)) {
-               throw new CommonApiException("Значение email не отличается от сохраненного");
-           }
+            if (currentEmail.equalsIgnoreCase(newEmail)) {
+                throw new CommonApiException("Значение email не отличается от сохраненного");
+            }
 
             boolean exists = emailDataRepository.existsByEmail(newEmail);
             if (exists) {
                 throw new NonUniqueException("Такой email уже используется");
             }
 
-            EmailData currentEmailData = emailData.get(0);
             currentEmailData.setEmail(newEmail);
-            emailDataRepository.save(currentEmailData);
+            EmailData saved = emailDataRepository.save(currentEmailData);
+            return saved.getId();
         } else {
             throw new UserNotFoundException("Пользователь не найден");
         }
     }
 
-    public void deleteEmail(Long userId, String email) throws UserNotFoundException, CommonApiException {
+    public Long deleteEmail(Long userId, Long emailDataId) throws UserNotFoundException, CommonApiException {
         Optional<User> user = userRepository.findById(userId);
         if (user.isPresent()) {
-            List<EmailData> emailDataList = emailDataRepository.findByEmailAndUserId(email, userId);
-            if (emailDataList.isEmpty()) {
+            Optional<EmailData> emailDataOpt = emailDataRepository.findById(emailDataId);
+            if (emailDataOpt.isEmpty()) {
                 throw new CommonApiException("Email не найден");
             }
-            emailDataRepository.delete(emailDataList.get(0));
+            EmailData currentEmailData = emailDataOpt.get();
+            Long ownerId = currentEmailData.getUser().getId();
+            if (!user.get().getId().equals(ownerId)) {
+                throw new CommonApiException("Запрещается удалять чужие данные");
+            }
+
+            emailDataRepository.deleteById(emailDataId);
+            return emailDataId;
         } else {
             throw new UserNotFoundException("Пользователь не найден");
         }
     }
 
-    public void addNewPhone(Long userId, String phone) throws NonUniqueException, UserNotFoundException {
+    public Long addNewPhone(Long userId, String phone) throws NonUniqueException, UserNotFoundException {
         Optional<User> user = userRepository.findById(userId);
         if (user.isPresent()) {
             boolean exists = phoneDataRepository.existsByPhone(phone);
@@ -104,21 +118,28 @@ public class UserService {
             phoneData.setPhone(phone);
             phoneData.setUser(user.get());
 
-            phoneDataRepository.save(phoneData);
+            PhoneData saved = phoneDataRepository.save(phoneData);
+            return saved.getId();
         } else {
             throw new UserNotFoundException("Пользователь не найден");
         }
     }
 
-    public void changePhone(Long userId, String oldPhone, String newPhone) throws NonUniqueException, UserNotFoundException, CommonApiException {
+    public Long changePhone(Long userId, Long phoneDataId, String newPhone) throws NonUniqueException, UserNotFoundException, CommonApiException {
         Optional<User> user = userRepository.findById(userId);
         if (user.isPresent()) {
-            List<PhoneData> phoneDataList = phoneDataRepository.findByPhoneAndUserId(oldPhone, userId);
-            if (phoneDataList.isEmpty()) {
+            Optional<PhoneData> phoneDataOpt = phoneDataRepository.findById(phoneDataId);
+            if (phoneDataOpt.isEmpty()) {
                 throw new CommonApiException("Phone не найден");
             }
 
-            if (oldPhone.equalsIgnoreCase(newPhone)) {
+            PhoneData currentPhoneData = phoneDataOpt.get();
+            String currentPhone = currentPhoneData.getPhone();
+            Long ownerId = currentPhoneData.getUser().getId();
+            if (!user.get().getId().equals(ownerId)) {
+                throw new CommonApiException("Запрещается изменять чужие данные");
+            }
+            if (currentPhone.equalsIgnoreCase(newPhone)) {
                 throw new CommonApiException("Значение phone не отличается от сохраненного");
             }
 
@@ -127,22 +148,29 @@ public class UserService {
                 throw new NonUniqueException("Такой phone уже используется");
             }
 
-            PhoneData currentPhoneData = phoneDataList.get(0);
             currentPhoneData.setPhone(newPhone);
-            phoneDataRepository.save(currentPhoneData);
+            PhoneData saved = phoneDataRepository.save(currentPhoneData);
+            return saved.getId();
         } else {
             throw new UserNotFoundException("Пользователь не найден");
         }
     }
 
-    public void deletePhone(Long userId, String phone) throws UserNotFoundException, CommonApiException {
+    public Long deletePhone(Long userId, Long phoneDataId) throws UserNotFoundException, CommonApiException {
         Optional<User> user = userRepository.findById(userId);
         if (user.isPresent()) {
-            List<PhoneData> phoneDataList = phoneDataRepository.findByPhoneAndUserId(phone, userId);
-            if (phoneDataList.isEmpty()) {
-                throw new CommonApiException("Phone не найден");
+            Optional<PhoneData> phoneDataOpt = phoneDataRepository.findById(phoneDataId);
+            if (phoneDataOpt.isEmpty()) {
+                throw new CommonApiException("Email не найден");
             }
-            phoneDataRepository.delete(phoneDataList.get(0));
+            PhoneData currentPhoneData = phoneDataOpt.get();
+            Long ownerId = currentPhoneData.getUser().getId();
+            if (!user.get().getId().equals(ownerId)) {
+                throw new CommonApiException("Запрещается удалять чужие данные");
+            }
+
+            phoneDataRepository.deleteById(phoneDataId);
+            return phoneDataId;
         } else {
             throw new UserNotFoundException("Пользователь не найден");
         }

@@ -7,6 +7,7 @@ import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.service.ApiInfo;
 import springfox.documentation.service.Contact;
+import springfox.documentation.service.Tag;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
 
@@ -15,9 +16,15 @@ public class SwaggerConfig {
 
     @Bean
     public Docket createRestApi() {
-        return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfo()).select()
-                .apis(RequestHandlerSelectors.basePackage("ru.westlarry.userAccount.controller")) // Пакет сканирования Swagger
-                .paths(PathSelectors.any()).build();
+        return new Docket(DocumentationType.SWAGGER_2).select()
+                .apis(RequestHandlerSelectors.basePackage("ru.westlarry.userAccount.controller"))
+                .paths(PathSelectors.any())
+                .build()
+                .apiInfo(apiInfo())
+                .tags(
+                        new Tag("Authentication", "Authentication method", 0),
+                        new Tag("User Management", "User management methods", 1),
+                        new Tag("Operations", "Some operations", 2));
     }
 
     /**
@@ -34,7 +41,7 @@ public class SwaggerConfig {
                 // основатель
                 .contact(new Contact("", "", ""))
                 // Описание
-                .description("Простой и элегантный стиль Restful").termsOfServiceUrl("")
+                .description("REST API сервис").termsOfServiceUrl("")
                 // номер версии
                 .version("0.0.1").build();
     }

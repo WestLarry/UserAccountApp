@@ -1,10 +1,9 @@
 package ru.westlarry.userAccount.controller;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -26,131 +25,79 @@ import java.util.stream.Collectors;
 @RestController
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RequestMapping("/api/users")
+@Api(tags = {"User Management"})
 public class UserController {
-
-    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
     private UserService userService;
 
     @PostMapping("/email")
-    public ResponseEntity<?> addNewEmail(@Valid @RequestBody EmailRequest emailRequest) {
-        try {
-            userService.addNewEmail(getCurrentUserId(), emailRequest.getEmail());
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (UserNotFoundException e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (NonUniqueException e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
-        } catch (Exception e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    @ApiOperation(value = "Создание нового email")
+    public ModelApiResponse addNewEmail(@Valid @RequestBody EmailRequest emailRequest) throws NonUniqueException, UserNotFoundException {
+        Long id = userService.addNewEmail(getCurrentUserId(), emailRequest.getEmail());
+        return new ModelApiResponse(id, "email");
     }
 
-    @PostMapping("/changeEmail")
-    public ResponseEntity<?> changeEmail(@Valid @RequestBody ChangeEmailRequest emailRequest) {
-        try {
-            userService.changeEmail(getCurrentUserId(), emailRequest.getOldEmail(), emailRequest.getNewEmail());
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (UserNotFoundException e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (NonUniqueException | CommonApiException e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
-        } catch (Exception e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    @PutMapping("/email/{id}")
+    @ApiOperation(value = "Изменение email")
+    public ModelApiResponse changeEmail(@PathVariable Long id, @Valid @RequestBody EmailRequest emailRequest) throws NonUniqueException, UserNotFoundException, CommonApiException {
+        userService.changeEmail(getCurrentUserId(), id, emailRequest.getEmail());
+        return new ModelApiResponse(id, "email");
     }
 
-    @DeleteMapping("/email")
-    public ResponseEntity<?> deleteEmail(@Valid @RequestBody EmailRequest emailRequest) {
-        try {
-            userService.deleteEmail(getCurrentUserId(), emailRequest.getEmail());
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (UserNotFoundException | CommonApiException e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (Exception e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    @DeleteMapping("/email/{id}")
+    @ApiOperation(value = "Удаление email")
+    public ModelApiResponse deleteEmail(@PathVariable Long id) throws UserNotFoundException, CommonApiException {
+        userService.deleteEmail(getCurrentUserId(), id);
+        return new ModelApiResponse(id, "email");
     }
 
     @PostMapping("/phone")
-    public ResponseEntity<?> addNewPhone(@RequestBody PhoneRequest phoneRequest) {
-        try {
-            userService.addNewPhone(getCurrentUserId(), phoneRequest.getPhone());
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (UserNotFoundException e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (NonUniqueException e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
-        } catch (Exception e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    @ApiOperation(value = "Создание нового номера телефона")
+    public ModelApiResponse addNewPhone(@RequestBody PhoneRequest phoneRequest) throws NonUniqueException, UserNotFoundException {
+        Long id = userService.addNewPhone(getCurrentUserId(), phoneRequest.getPhone());
+        return new ModelApiResponse(id, "phone");
     }
 
-    @PostMapping("/changePhone")
-    public ResponseEntity<?> changePhone(@Valid @RequestBody ChangePhoneRequest phoneRequest) {
-        try {
-            userService.changePhone(getCurrentUserId(), phoneRequest.getOldPhone(), phoneRequest.getNewPhone());
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (UserNotFoundException e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (NonUniqueException | CommonApiException e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
-        } catch (Exception e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    @PutMapping("/phone/{id}")
+    @ApiOperation(value = "Изменение номера телефона")
+    public ModelApiResponse changePhone(@PathVariable Long id, @Valid @RequestBody PhoneRequest phoneRequest) throws NonUniqueException, UserNotFoundException, CommonApiException {
+        userService.changePhone(getCurrentUserId(), id, phoneRequest.getPhone());
+        return new ModelApiResponse(id, "phone");
+
     }
 
-    @DeleteMapping("/phone")
-    public ResponseEntity<?> deletePhone(@Valid @RequestBody PhoneRequest phoneRequest) {
-        try {
-            userService.deletePhone(getCurrentUserId(), phoneRequest.getPhone());
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (UserNotFoundException | CommonApiException e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (Exception e) {
-            logger.error("ERROR {} " + e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    @DeleteMapping("/phone/{id}")
+    @ApiOperation(value = "Удаление телефона по номеру")
+    public ModelApiResponse deletePhone(@PathVariable Long id) throws UserNotFoundException, CommonApiException {
+        userService.deletePhone(getCurrentUserId(), id);
+        return new ModelApiResponse(id, "phone");
     }
 
     @GetMapping("/")
-    public ResponseEntity<?> findUsers(@Valid @RequestBody SearchRequest searchRequest) {
-        try {
-            List<User> arr = userService.findUsers(searchRequest.getName(), searchRequest.getDateOfBirth(),
-                    searchRequest.getEmail(), searchRequest.getPhone(), searchRequest.getPage(), searchRequest.getSize());
-            if (arr.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            } else {
-                SearchResponse searchResponse = new SearchResponse();
-                arr.forEach(e -> {
-                    UserInfo userInfo = new UserInfo();
-                    userInfo.setName(e.getName());
-                    userInfo.setDateOfBirth(e.getDateOfBirth().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-                    userInfo.setEmails(String.join(", ", e.getEmails().stream().map(EmailData::getEmail).collect(Collectors.toSet())));
-                    userInfo.setPhones(String.join(", ", e.getPhones().stream().map(PhoneData::getPhone).collect(Collectors.toSet())));
-                    searchResponse.getUsers().add(userInfo);
-                });
-                return new ResponseEntity<>(searchResponse, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return new ResponseEntity<>(e.getCause().getCause().getLocalizedMessage(), HttpStatus.NO_CONTENT);
+    @ApiOperation(value = "Поиск пользователей по фильтр с поддержкой пейджинга")
+    public SearchResponse findUsers(@Valid @RequestBody @ApiParam(value = "a) Если передана «dateOfBirth», то фильтр записей, где «date_of_birth» больше чем переданный в запросе.\n" +
+            "        b) Если передан «phone», то фильтр по 100% сходству.\n" +
+            "        c) Если передан «name», то фильтр по like форматом ‘{text-from-request-param}%’\n" +
+            "        d) Если передан «email», то фильтр по 100% сходству.") SearchRequest searchRequest) {
+
+        List<User> arr = userService.findUsers(searchRequest.getName(), searchRequest.getDateOfBirth(),
+                searchRequest.getEmail(), searchRequest.getPhone(), searchRequest.getPage(), searchRequest.getSize());
+        if (arr.isEmpty()) {
+            return new SearchResponse();
+        } else {
+            SearchResponse searchResponse = new SearchResponse();
+            arr.forEach(e -> {
+                UserInfo userInfo = new UserInfo();
+                userInfo.setName(e.getName());
+                userInfo.setDateOfBirth(e.getDateOfBirth().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                userInfo.setEmails(String.join(", ", e.getEmails().stream().map(EmailData::getEmail).collect(Collectors.toSet())));
+                userInfo.setPhones(String.join(", ", e.getPhones().stream().map(PhoneData::getPhone).collect(Collectors.toSet())));
+                searchResponse.getUsers().add(userInfo);
+            });
+            return searchResponse;
         }
+
     }
 
     private Long getCurrentUserId() {

@@ -19,7 +19,7 @@ public class ScheduleService {
     @Autowired
     private BalanceService balanceService;
 
-    @Scheduled(fixedRate = 30 * 1000, initialDelay = 30 * 1000)
+    @Scheduled(fixedRateString = "${app.scheduleRateInMsec}", initialDelayString = "${app.scheduleRateInMsec}")
     public void runUpdateBalanceJob() {
         List<Long> accounts = accountRepository.findAllIds();
         accounts.forEach(e -> {
