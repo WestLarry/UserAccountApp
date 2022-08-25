@@ -129,7 +129,7 @@ public class UserAccountApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(findByBirthDateJsonEmptyResult)
                         .header("Authorization", "Bearer " + token))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk()).andExpect(content().string("{\"users\":[]}"));
 
 
         String findByEmailJson = "{\"dateOfBirth\": null, \"name\": null, \"email\": \"testUser2@email.com\", \"phone\": null, \"page\": 0, \"size\" : 1}";
